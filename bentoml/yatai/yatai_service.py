@@ -11,7 +11,7 @@ from bentoml import config
 from bentoml.configuration import get_debug_mode
 from bentoml.exceptions import BentoMLException
 from bentoml.utils import reserve_free_port
-from bentoml.yatai.client.interceptor import (
+from bentoml.yatai.grpc_interceptor import (
     PromServerInterceptor,
     ServiceLatencyInterceptor,
 )
@@ -136,6 +136,9 @@ def start_yatai_service_grpc_server(
             )
     server.add_insecure_port(f"[::]:{grpc_port}")
 
+    # the reasons for this port is to accomodate Makefile codefile as it is
+    # harder to allocate the random port from reserve_free_port without the uses of
+    # shell scripts. Therefore putting a prometheus_port as a fallback.
     prometheus_port = 50052
     with reserve_free_port() as port:
         prometheus_port = port
@@ -177,7 +180,7 @@ def start_yatai_service_grpc_server(
         f"""* Web UI: {f"running on http://127.0.0.1:{ui_port}/{base_url}"
         if (with_ui and base_url!=".")
         else f"running on http://127.0.0.1:{ui_port}" if with_ui else "off"}\n"""
-        f"* Prometheus running on 127.0.0.1:{prometheus_port}\n"
+        f'* Prometheus: { "off" if debug_mode else f"running on http://127.0.0.1:{ui_port}/metrics"}\n'
         f"* Running on 127.0.0.1:{grpc_port} (Press CTRL+C to quit)\n"
         f"* Help and instructions: "
         f"https://docs.bentoml.org/en/latest/guides/yatai_service.html\n"
